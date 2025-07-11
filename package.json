@@ -1,0 +1,22 @@
+{
+  "name": "coureregdtu",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron .",
+    "package": "electron-packager . CourseRegistrar --platform=win32,darwin,linux --arch=x64 --icon=assets/dtulogo.png --overwrite"
+  },
+  "keywords": [],
+  "author": "Saksham Kaushal",
+  "license": "MIT",
+  "description": "",
+  "devDependencies": {
+    "electron": "^34.5.8"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "got": "^14.4.5",
+    "node-notifier": "^10.0.1"
+  }
+}
