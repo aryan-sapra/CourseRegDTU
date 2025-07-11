@@ -165,14 +165,13 @@ async function fetchTrackedCourses(cookies, studentHash, ipAddress, courseCodes)
 
     $("div.elective-subjects.table-responsive table.table-hover.table-bordered tbody tr:not(.setHeader)").each((_, row) => {
       const cells = $(row).find("td");
-
-      // if (cells.length === 6) {
+      if (cells.length === 6) {
         const courseCode = $(cells[1]).text().trim();
-        console.log(`Processing Course: ${courseCode}`);
+        // console.log(`Processing Course: ${courseCode}`);
         const courseSlot = $(cells[3]).text().trim();
-        console.log(`Course Slot: ${courseSlot}`);
+        // console.log(`Course Slot: ${courseSlot}`);
         const seats = parseInt($(cells[4]).text().trim(), 10) || 0;
-        console.log(`Available Seats: ${seats}`);
+        // console.log(`Available Seats: ${seats}`);
         const formAction = $(cells[5]).find("form").attr("action");
         // console.log(`Form Action: ${formAction}`);
         if (formAction) {
@@ -186,10 +185,10 @@ async function fetchTrackedCourses(cookies, studentHash, ipAddress, courseCodes)
               seats,
             });
             parsedCourses.delete(courseCode); // Remove found 
-            console.log(`Tracking Course: ${courseCode} (Slot: ${coucoursesrseSlot}) with Hash: ${courseHash} and Seats: ${seats}`);
+            console.log(`Tracking Course: ${courseCode} (Slot: ${courseSlot}) with Hash: ${courseHash} and Seats: ${seats}`);
           }
         }
-      // }
+      }
     });
 
     // Check for courses that were not found
@@ -198,7 +197,7 @@ async function fetchTrackedCourses(cookies, studentHash, ipAddress, courseCodes)
       const notFound = Array.from(parsedCourses.keys()).join(', ');
       throw new Error(`The following course(s) were not found: ${notFound}. Please check the course code and slot.`);
     }
-    console.log(`Total Courses Being Tracked: ${trackedCourses}`);
+    // console.log(`Total Courses Being Tracked: ${trackedCourses}`);
     return trackedCourses;
   } catch (error) {
     console.error("Error processing courses:", error);
@@ -300,6 +299,7 @@ const handlerLogic = async (cookies, studentHash, ipAddress, trackedCourses, cal
       }
 
       const slotsToTrack = groupCoursesBySlot(trackedCourses);
+      let registeredSomething = false;
 
       for (const [courseSlot, courses] of slotsToTrack.entries()) {
         if (!isRunning) return;
@@ -322,16 +322,22 @@ const handlerLogic = async (cookies, studentHash, ipAddress, trackedCourses, cal
               const updatedCourseData = { ...courseData, seats: newSeats };
               trackedCourses.set(courseHash, updatedCourseData);
               callbacks.onStatusUpdate(`Seat Update: ${courseCode} (${courseData.courseSlot}) - Seats: ${trackedSeats} -> ${newSeats}`);
+            }
 
-              if (newSeats > 0) {
-                await sendPostReq(cookies, studentHash, ipAddress, courseHash);
-                callbacks.onStatusUpdate(`Attempting to register for ${courseCode}...`);
-              }
-              await sendGetReq();
-              await delay(1000);
+            if (newSeats > 0) {
+              await sendPostReq(cookies, studentHash, ipAddress, courseHash);
+              callbacks.onStatusUpdate(`Attempting to register for ${courseCode}...`);
+              registeredSomething = true;
+              break;
             }
           }
         }
+        if (registeredSomething) break;
+      }
+
+      if (registeredSomething) {
+        await delay(1000);
+        continue;
       }
 
       if (trackedCourses.size === 0) {

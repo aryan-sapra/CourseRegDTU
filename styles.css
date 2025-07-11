@@ -99,18 +99,21 @@ h2 {
   position: relative;
 }
 
-.password-group .fa-eye,
-.password-group .fa-eye-slash {
+.password-group .icon-btn {
   position: absolute;
   top: 42px;
   right: 16px;
   cursor: pointer;
+}
+
+.password-group .icon-btn svg {
+  width: 20px;
+  height: 20px;
   color: #adb5bd;
   transition: color 0.2s;
 }
 
-.password-group .fa-eye:hover,
-.password-group .fa-eye-slash:hover {
+.password-group .icon-btn:hover svg {
   color: var(--primary-color);
 }
 
@@ -259,10 +262,137 @@ h2 {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.courses-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.courses-header h2 {
+  margin: 0;
+  border: none;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn svg {
+  width: 24px;
+  height: 24px;
+  color: var(--text-color-muted);
+  transition: color 0.2s;
+}
+
+.icon-btn:hover svg {
+  color: var(--primary-color);
+}
+
+#json-input-btn svg {
+  color: var(--primary-color);
+}
+
+#json-input-btn:hover svg {
+  color: var(--primary-color-hover);
+}
+
+#json-input-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: var(--card-background-color);
+  border-radius: 12px;
+  padding: 24px;
+  width: 600px;
+  max-width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  animation-duration: 0.3s;
+  animation-fill-mode: both;
+}
+
+.modal-open .modal-content {
+  animation-name: zoomIn;
+}
+
+.modal-close .modal-content {
+  animation-name: zoomOut;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+.modal-controls {
+  display: flex;
+  gap: 16px;
+}
+
+.modal-controls .icon-btn.danger svg {
+  color: var(--text-color-muted);
+}
+
+.modal-controls .icon-btn.danger:hover svg {
+  color: var(--danger-color);
+}
+
+.CodeMirror {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  height: 300px;
+  font-family: 'Fira Code', monospace;
 }
