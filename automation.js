@@ -283,6 +283,19 @@ const handlerLogic = async (cookies, studentHash, ipAddress, trackedCourses, cal
         }
       });
 
+      $("tr[bgcolor='#d4d3d2']").each((_, element) => {
+        const courseHashMatch = $(element).find("form[action*='/student/courseRegister/']").attr("action")?.match(/\/([a-f0-9]{24})$/);
+        if (courseHashMatch) {
+          const courseHash = courseHashMatch[1];
+          if (trackedCourses.has(courseHash)) {
+            const blockedCourse = trackedCourses.get(courseHash);
+            trackedCourses.delete(courseHash);
+            callbacks.onCourseBlocked(blockedCourse);
+            callbacks.onStatusUpdate(`Course is Blocked: ${blockedCourse.courseCode} - Dropping from tracking.`);
+          }
+        }
+      });
+
       return $;
     } catch (error) {
       callbacks.onError(error.message);
@@ -424,11 +437,9 @@ async function startAutomation(credentials, ipAddress, courseIdsToTrack, callbac
   } catch (error) {
     callbacks.onError(error.message);
   } finally {
-    if (isRunning) {
-      isRunning = false;
-      if (callbacks && callbacks.onStop) {
-        callbacks.onStop();
-      }
+    isRunning = false;
+    if (callbacks && callbacks.onStop) {
+      callbacks.onStop();
     }
   }
 }

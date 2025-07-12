@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusArea = document.getElementById('status-area');
   const errorArea = document.getElementById('error-area');
   const registeredList = document.getElementById('registered-list');
+  const blockedList = document.getElementById('blocked-list');
   const togglePassword = document.getElementById('toggle-password');
   const passwordInput = document.getElementById('password');
   const eyeOpen = document.getElementById('eye-open');
@@ -180,6 +181,8 @@ document.addEventListener('DOMContentLoaded', () => {
     isAutomationRunning = false;
     setUIState(isAutomationRunning);
     statusArea.textContent = 'Automation stopped by user.';
+    registeredList.innerHTML = '';
+    blockedList.innerHTML = '';
   });
 
   // Listen for status updates
@@ -193,6 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     li.innerHTML = `${course.courseCode} (Slot: ${course.courseSlot}) - Registered! <span class="timestamp">${timestamp}</span>`;
     registeredList.appendChild(li);
+  });
+
+  window.electronAPI.onCourseBlocked((event, course) => {
+    const li = document.createElement('li');
+    const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    li.innerHTML = `${course.courseCode} (Slot: ${course.courseSlot}) - Blocked! <span class="timestamp">${timestamp}</span>`;
+    blockedList.appendChild(li);
   });
 
   // Listen for error messages

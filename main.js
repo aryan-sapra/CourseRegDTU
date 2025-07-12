@@ -49,6 +49,7 @@ ipcMain.handle('start-automation', async (event, data) => {
     startAutomation(creds, ipAddress, courses, {
       onStatusUpdate: (message) => win.webContents.send('status-update', message),
       onCourseRegistered: (course) => win.webContents.send('course-registered', course),
+      onCourseBlocked: (course) => win.webContents.send('course-blocked', course),
       onError: (error) => win.webContents.send('automation-error', error),
       onStop: () => {
         automationRunning = false;
