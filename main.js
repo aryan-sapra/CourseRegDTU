@@ -41,12 +41,12 @@ ipcMain.handle('start-automation', async (event, data) => {
     return { success: false, error: 'Automation is already running.' };
   }
 
-  const { creds, courses } = data;
+  const { creds, courses, autoLogin } = data;
   const ipAddress = '14.139.251.105';
   automationRunning = true;
 
   try {
-    startAutomation(creds, ipAddress, courses, {
+    startAutomation(creds, ipAddress, courses, autoLogin, {
       onStatusUpdate: (message) => win.webContents.send('status-update', message),
       onCourseRegistered: (course) => win.webContents.send('course-registered', course),
       onCourseBlocked: (course) => win.webContents.send('course-blocked', course),

@@ -79,7 +79,7 @@ async function automateLogin({r,p}, ipAddress) {
         "Sec-Fetch-Mode": "navigate",
         "Sec-Fetch-User": "?1",
         "Sec-Fetch-Dest": "document",
-        "Referer" : "https://reg.exam.dtu.ac.in/student/login", 
+        "Referer" : "https://reg.exam.dtu.ac.in/student/login",
         "Accept-Encoding": "gzip, deflate, br, zstd",
         "Priority": "u=0, i",
         "Connection": "keep-alive",
@@ -111,6 +111,29 @@ async function automateLogin({r,p}, ipAddress) {
   } catch (error) {
     console.error('Error during login:', error.message);
     throw error;
+  }
+}
+
+async function automateLoginWithRetry(credentials, ipAddress, callbacks) {
+  let attempts = 0;
+  const maxAttempts = 10000;
+  let delayTime = 100;
+
+  while (attempts < maxAttempts) {
+    try {
+      callbacks.onStatusUpdate(`Login attempt ${attempts + 1}/${maxAttempts}...`);
+      const result = await automateLogin(credentials, ipAddress);
+      callbacks.onStatusUpdate('Login successful.');
+      return result;
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        throw new Error('Maximum login attempts reached. Please check your credentials and network connection.');
+      }
+      callbacks.onStatusUpdate(`Login failed. Retrying in ${delayTime}ms...`);
+      await delay(delayTime);
+      delayTime *= 2; // Exponential backoff
+    }
   }
 }
 
@@ -232,19 +255,20 @@ const sendPostReq = async (cookies, studentHash, ipAddress, courseHash) => {
 let isRunning = false;
 
 // Handler Logic to Monitor and Register Courses
-const handlerLogic = async (cookies, studentHash, ipAddress, trackedCourses, callbacks) => {
+const handlerLogic = async (session, ipAddress, trackedCourses, autoLogin, credentials, callbacks) => {
   const { default: got } = await import('got');
   let previousEtag = null;
+  let currentSession = session;
 
   const sendGetReq = async () => {
     if (!isRunning) return null;
     try {
-      const response = await got(`https://${ipAddress}/student/courseRegistration/${studentHash}`, {
+      const response = await got(`https://${ipAddress}/student/courseRegistration/${currentSession.studentHash}`, {
         method: 'GET',
         headers: {
           ...getCommonHeaders(),
-          'Referer': `https://reg.exam.dtu.ac.in/student/home/${studentHash}`,
-          'Cookie': cookies,
+          'Referer': `https://reg.exam.dtu.ac.in/student/home/${currentSession.studentHash}`,
+          'Cookie': currentSession.cookies,
         },
         agent: { https: httpsAgent },
         responseType: 'text',
@@ -262,7 +286,7 @@ const handlerLogic = async (cookies, studentHash, ipAddress, trackedCourses, cal
       const $ = cheerio.load(response.body);
 
       if (response.body.length < 18000 && $('p').text().includes('Found. Redirecting to /student/login')) {
-        throw new Error("Session Expired. Please log in again.");
+        throw new Error("Session Expired");
       }
 
       const alertDiv = $('div.alert.alert-danger.alert-dismissible.fade.show[role="alert"]');
@@ -298,8 +322,15 @@ const handlerLogic = async (cookies, studentHash, ipAddress, trackedCourses, cal
 
       return $;
     } catch (error) {
-      callbacks.onError(error.message);
-      throw error;
+      if (autoLogin && error.message.includes("Session Expired")) {
+        callbacks.onStatusUpdate("Session expired. Attempting to re-login...");
+        currentSession = await automateLoginWithRetry(credentials, ipAddress, callbacks);
+        callbacks.onStatusUpdate("Session re-initiated successfully.");
+        return null; // Return null to re-trigger sendGetReq
+      } else {
+        callbacks.onError(error.message);
+        throw error;
+      }
     }
   };
 
@@ -338,7 +369,7 @@ const handlerLogic = async (cookies, studentHash, ipAddress, trackedCourses, cal
             }
 
             if (newSeats > 0) {
-              await sendPostReq(cookies, studentHash, ipAddress, courseHash);
+              await sendPostReq(currentSession.cookies, currentSession.studentHash, ipAddress, courseHash);
               callbacks.onStatusUpdate(`Attempting to register for ${courseCode}...`);
               registeredSomething = true;
               break;
@@ -417,14 +448,19 @@ function gatherSlotRows(slotHeader) {
 }
 
 // Main Execution Function
-async function startAutomation(credentials, ipAddress, courseIdsToTrack, callbacks) {
+async function startAutomation(credentials, ipAddress, courseIdsToTrack, autoLogin, callbacks) {
   isRunning = true;
   try {
-    callbacks.onStatusUpdate('Attempting to log in...');
-    const { cookies, studentHash } = await automateLogin(credentials, ipAddress);
+    let session;
+    if (autoLogin) {
+      session = await automateLoginWithRetry(credentials, ipAddress, callbacks);
+    } else {
+      callbacks.onStatusUpdate('Attempting to log in...');
+      session = await automateLogin(credentials, ipAddress);
+    }
 
     callbacks.onStatusUpdate('Login successful. Fetching courses...');
-    const trackedCourses = await fetchTrackedCourses(cookies, studentHash, ipAddress, courseIdsToTrack);
+    const trackedCourses = await fetchTrackedCourses(session.cookies, session.studentHash, ipAddress, courseIdsToTrack);
 
     if (trackedCourses.size === 0) {
       throw new Error("No courses to track. They may already be registered or the list is empty.");
@@ -433,7 +469,7 @@ async function startAutomation(credentials, ipAddress, courseIdsToTrack, callbac
     if (!isRunning) return;
 
     callbacks.onStatusUpdate(`Now tracking ${trackedCourses.size} course(s). Monitoring for seat availability...`);
-    await handlerLogic(cookies, studentHash, ipAddress, trackedCourses, callbacks);
+    await handlerLogic(session, ipAddress, trackedCourses, autoLogin, credentials, callbacks);
   } catch (error) {
     callbacks.onError(error.message);
   } finally {

@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('roll-no').disabled = isAutomationRunning;
     document.getElementById('password').disabled = isAutomationRunning;
+    document.getElementById('auto-login').disabled = isAutomationRunning;
 
     const courseRows = document.querySelectorAll('.course-row input, .course-row button');
     courseRows.forEach(element => {
@@ -134,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearError();
     const rollNo = document.getElementById('roll-no').value.trim();
     const password = document.getElementById('password').value.trim();
+    const autoLogin = document.getElementById('auto-login').checked;
 
     if (!rollNo || !password) {
       showError('Please enter both Roll Number and Password.');
@@ -163,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const response = await window.electronAPI.startAutomation({
       creds: { r: rollNo, p: password },
       courses: courses,
+      autoLogin: autoLogin,
     });
 
     if (!response.success) {
