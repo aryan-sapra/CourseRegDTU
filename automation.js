@@ -116,25 +116,27 @@ async function automateLogin({r,p}, ipAddress) {
 
 async function automateLoginWithRetry(credentials, ipAddress, callbacks) {
   let attempts = 0;
-  const maxAttempts = 10000;
-  let delayTime = 100;
+  const delayTime = 10;
 
-  while (attempts < maxAttempts) {
+  while (isRunning) {
     try {
-      callbacks.onStatusUpdate(`Login attempt ${attempts + 1}/${maxAttempts}...`);
+      attempts++;
+      callbacks.onStatusUpdate(`Login attempt ${attempts}...`);
       const result = await automateLogin(credentials, ipAddress);
       callbacks.onStatusUpdate('Login successful.');
       return result;
     } catch (error) {
-      attempts++;
-      if (attempts >= maxAttempts) {
-        throw new Error('Maximum login attempts reached. Please check your credentials and network connection.');
+      if (!isRunning) {
+        break;
       }
-      callbacks.onStatusUpdate(`Login failed. Retrying in ${delayTime}ms...`);
+      if (error.message === 'Invalid Roll Number or Password.') {
+        throw error; // Do not retry on invalid credentials
+      }
+      callbacks.onStatusUpdate(`Login failed: ${error.message}. Retrying in ${delayTime}ms...`);
       await delay(delayTime);
-      delayTime *= 2; // Exponential backoff
     }
   }
+  throw new Error("Automation stopped during login.");
 }
 
 // Function to Fetch Course Registration HTML Content
@@ -322,15 +324,29 @@ const handlerLogic = async (session, ipAddress, trackedCourses, autoLogin, crede
 
       return $;
     } catch (error) {
+      if (!isRunning) throw error;
+
       if (autoLogin && error.message.includes("Session Expired")) {
         callbacks.onStatusUpdate("Session expired. Attempting to re-login...");
-        currentSession = await automateLoginWithRetry(credentials, ipAddress, callbacks);
-        callbacks.onStatusUpdate("Session re-initiated successfully.");
-        return null; // Return null to re-trigger sendGetReq
-      } else {
-        callbacks.onError(error.message);
-        throw error;
+        try {
+          currentSession = await automateLoginWithRetry(credentials, ipAddress, callbacks);
+          callbacks.onStatusUpdate("Session re-initiated successfully.");
+        } catch (loginError) {
+          callbacks.onError(loginError.message);
+          throw loginError; // Stop if relogin fails (e.g., invalid credentials)
+        }
+        return null; // Retry the GET request with the new session
       }
+
+      // Handle HTTP errors (e.g., 404, 5xx) by retrying
+      if (error.response && error.response.statusCode) {
+        callbacks.onStatusUpdate(`Request failed with status ${error.response.statusCode}. Retrying...`);
+        return null; // Returning null will cause a retry after 900ms in the main loop
+      }
+
+      // Handle other errors (e.g., network issues)
+      callbacks.onError(`An unexpected error occurred: ${error.message}. Retrying...`);
+      return null; // Returning null will cause a retry
     }
   };
 
@@ -338,7 +354,7 @@ const handlerLogic = async (session, ipAddress, trackedCourses, autoLogin, crede
     while (isRunning) {
       const $ = await sendGetReq();
       if (!$) {
-        await delay(1000);
+        await delay(900);
         continue;
       }
 
@@ -389,7 +405,7 @@ const handlerLogic = async (session, ipAddress, trackedCourses, autoLogin, crede
         break;
       }
 
-      await delay(1000);
+      await delay(900);
     }
   };
 

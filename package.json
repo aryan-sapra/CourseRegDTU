@@ -1,22 +1,48 @@
 {
   "name": "coureregdtu",
   "version": "1.0.0",
+  "description": "Course Registrar DTU",
   "main": "main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron .",
-    "package": "electron-packager . CourseRegistrar --platform=win32,darwin,linux --arch=x64 --icon=assets/dtulogo.png --overwrite"
+  "author": {
+    "name": "potui",
+    "email": "potui@potui.xyz"
   },
-  "keywords": [],
-  "author": "Saksham Kaushal",
   "license": "MIT",
-  "description": "",
-  "devDependencies": {
-    "electron": "^34.5.8"
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.saksham.coureregdtu",
+    "productName": "CourseRegistrar",
+    "directories": {
+      "output": "dist"
+    },
+    "files": ["**/*"],
+    "win": {
+      "target": ["nsis", "zip"],
+      "icon": "assets/dtulogo.ico"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "assets/dtulogo.icns"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "assets/dtulogo.png",
+      "category": "Utility"
+    }
   },
   "dependencies": {
     "cheerio": "^1.0.0",
     "got": "^14.4.5",
     "node-notifier": "^10.0.1"
+  },
+  "devDependencies": {
+    "electron": "^34.5.8",
+    "electron-builder": "^24.6.0"
   }
 }
