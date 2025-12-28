@@ -396,7 +396,7 @@ const handlerLogic = async (session, ipAddress, trackedCourses, autoLogin, crede
       }
 
       if (registeredSomething) {
-        await delay(1000);
+        await delay(300);
         continue;
       }
 
