@@ -354,7 +354,7 @@ const handlerLogic = async (session, ipAddress, trackedCourses, autoLogin, crede
     while (isRunning) {
       const $ = await sendGetReq();
       if (!$) {
-        await delay(250);
+        await delay(900);
         continue;
       }
 
@@ -396,7 +396,7 @@ const handlerLogic = async (session, ipAddress, trackedCourses, autoLogin, crede
       }
 
       if (registeredSomething) {
-        await delay(300);
+        await delay(500);
         continue;
       }
 
